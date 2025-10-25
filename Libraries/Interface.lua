@@ -5732,6 +5732,79 @@ local Library do
             Columns = Data.Columns or Data.columns or 2,
         }
 
+        if not self.SubPages then
+            self.SubPages = true
+
+            local PageItems = self.Items or { }
+            local PageFrame = PageItems["Page"] and PageItems["Page"].Instance
+
+            if PageFrame then
+                local ExistingLayout = PageFrame:FindFirstChildOfClass("UIListLayout")
+
+                if ExistingLayout then
+                    ExistingLayout:Destroy()
+                end
+
+                local SubPagesHolder = PageItems["SubPages"]
+
+                if not SubPagesHolder then
+                    SubPagesHolder = Instances:Create("Frame", {
+                        Parent = PageFrame,
+                        Name = "\0",
+                        Size = UDim2New(0, 0, 0, 35),
+                        BorderColor3 = FromRGB(42, 49, 45),
+                        BorderSizePixel = 2,
+                        AutomaticSize = Enum.AutomaticSize.X,
+                        BackgroundColor3 = FromRGB(20, 24, 21)
+                    })
+
+                    SubPagesHolder:AddToTheme({BackgroundColor3 = "Page Background", BorderColor3 = "Outline"})
+                    SubPagesHolder:Border("Border")
+
+                    Instances:Create("UIPadding", {
+                        Parent = SubPagesHolder.Instance,
+                        Name = "\0",
+                        PaddingRight = UDimNew(0, 7),
+                        PaddingLeft = UDimNew(0, 7)
+                    })
+
+                    Instances:Create("UIListLayout", {
+                        Parent = SubPagesHolder.Instance,
+                        Name = "\0",
+                        VerticalAlignment = Enum.VerticalAlignment.Center,
+                        FillDirection = Enum.FillDirection.Horizontal,
+                        Padding = UDimNew(0, 12),
+                        SortOrder = Enum.SortOrder.LayoutOrder
+                    })
+
+                    PageItems["SubPages"] = SubPagesHolder
+                end
+
+                local ColumnsFrame = PageItems["Columns"]
+
+                if not ColumnsFrame then
+                    ColumnsFrame = Instances:Create("Frame", {
+                        Parent = PageFrame,
+                        Name = "\0",
+                        BackgroundTransparency = 1,
+                        Position = UDim2New(0, 0, 0, 51),
+                        BorderColor3 = FromRGB(42, 49, 45),
+                        Size = UDim2New(1, 0, 1, -51),
+                        BorderSizePixel = 0,
+                        BackgroundColor3 = FromRGB(255, 255, 255)
+                    })
+
+                    PageItems["Columns"] = ColumnsFrame
+                end
+
+                for _, Column in self.ColumnsData do
+                    if Column and Column.Instance then
+                        Column.Instance.Parent = ColumnsFrame.Instance
+                    end
+                end
+            end
+        end
+
         Library.SearchItems[SubPage] = { }
 
         local NewSubPage, Items = Components:WindowSubPage({
