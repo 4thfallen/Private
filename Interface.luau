@@ -5566,6 +5566,10 @@
 
 
         Library.Notification = function(self, Title, Description, Duration)
+            local duration = ToNumber(Duration) or 5
+            local titleText = Title ~= nil and ToString(Title) or "Notification"
+            local descriptionText = Description ~= nil and ToString(Description) or ""
+
             local Items = { } do
                 Items["Notification"] = Instances:Create("Frame", {
                     Parent = Library.NotifHolder.Instance,
@@ -5600,7 +5604,7 @@
                     FontFace = Library.Font,
                     TextColor3 = FromRGB(235, 235, 235),
                     BorderColor3 = FromRGB(0, 0, 0),
-                    Text = Title,
+                    Text = titleText,
                     BackgroundTransparency = 1,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     BorderSizePixel = 0,
@@ -5617,7 +5621,7 @@
                     FontFace = Library.Font,
                     TextColor3 = FromRGB(235, 235, 235),
                     TextTransparency = 0.4000000059604645,
-                    Text = Description,
+                    Text = descriptionText,
                     Position = UDim2New(0, 0, 0, 15),
                     BorderSizePixel = 0,
                     BackgroundTransparency = 1,
@@ -5669,9 +5673,9 @@
                 end
 
                 Items["Notification"]:Tween(nil, {Size = UDim2New(0, Size.X, 0, 0)})
-                Items["Liner"]:Tween(TweenInfoNew(Duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New(0, 0, 0, 1)})
+                Items["Liner"]:Tween(TweenInfoNew(duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New(0, 0, 0, 1)})
 
-                TaskDelay(Duration + 0.1, function()
+                TaskDelay(duration + 0.1, function()
                     for Index, Value in Items do
                         if Value.Instance:IsA("Frame") then
                             Value:Tween(nil, {BackgroundTransparency = 1})
@@ -6926,7 +6930,7 @@
             return BlankElement, Items
         end
 
-        Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList)
+        Library.CreateSettingsPage = function(self, Window, Watermark)
             local SettingsPage = Window:Page({Name = "Settings", SubPages = true}) do
                 local ThemingSubPage = SettingsPage:SubPage({Name = "Theming", Columns = 2}) do
                     local ThemesSection = ThemingSubPage:Section({Name = "Themes", Side = 1}) do
@@ -7138,86 +7142,10 @@
                     end
                 end
 
-                local GameSubPage = SettingsPage:SubPage({Name = "Game", Columns = 2}) do
-                    local players = game:GetService("Players")
-                    local teleportService = game:GetService("TeleportService")
+                local GameSubPage = SettingsPage:SubPage({Name = "Game", Columns = 1}) do
                     local lighting = game:GetService("Lighting")
-                    local HttpService = game:GetService("HttpService")
 
-                    local ServerSection = GameSubPage:Section({Name = "Server", Side = 1}) do
-                        local serverButtons = ServerSection:Button()
-
-                        serverButtons:Add("Rejoin", function()
-                            local localPlayer = players.LocalPlayer
-
-                            if localPlayer then
-                                teleportService:Teleport(game.PlaceId, localPlayer)
-                            end
-                        end)
-
-                        serverButtons:Add("Server hop", function()
-                            local localPlayer = players.LocalPlayer
-
-                            if not localPlayer then
-                                return
-                            end
-
-                            local success, result = pcall(function()
-                                local url = StringFormat("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100", game.PlaceId)
-                                local response = HttpService:GetAsync(url)
-                                return HttpService:JSONDecode(response)
-                            end)
-
-                            if success and result and result.data then
-                                local availableServers = {}
-
-                                for _, server in ipairs(result.data) do
-                                    if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                                        table.insert(availableServers, server.id)
-                                    end
-                                end
-
-                                if #availableServers > 0 then
-                                    local serverId = availableServers[math.random(1, #availableServers)]
-                                    teleportService:TeleportToPlaceInstance(game.PlaceId, serverId, localPlayer)
-                                    return
-                                end
-                            end
-
-                            teleportService:Teleport(game.PlaceId, localPlayer)
-                        end)
-
-                        serverButtons:Add("Copy Job ID", function()
-                            local jobId = ToString(game.JobId)
-
-                            if setclipboard then
-                                setclipboard(jobId)
-                                Library:Notification("Server", "Job ID copied to clipboard.", 3)
-                            else
-                                Library:Notification("Server", "Clipboard API unavailable.", 3)
-                            end
-                        end)
-
-                        local playerCountLabel = ServerSection:Label({Name = "Players: 0/0"})
-
-                        local lastCurrent, lastMax = -1, -1
-
-                        local function updatePlayerCount()
-                            local current = #players:GetPlayers()
-                            local maxPlayers = players.MaxPlayers or 0
-
-                            if current ~= lastCurrent or maxPlayers ~= lastMax then
-                                lastCurrent, lastMax = current, maxPlayers
-                                playerCountLabel:SetText(StringFormat("Players: %d/%d", current, maxPlayers))
-                            end
-                        end
-
-                        updatePlayerCount()
-                        Library:Connect(players.PlayerAdded, updatePlayerCount)
-                        Library:Connect(players.PlayerRemoving, updatePlayerCount)
-                    end
-
-                    local EnvironmentSection = GameSubPage:Section({Name = "Environment", Side = 2}) do
+                    local EnvironmentSection = GameSubPage:Section({Name = "Environment", Side = 1}) do
                         EnvironmentSection:Slider({
                             Name = "Brightness:",
                             Flag = "EnvironmentBrightness",
