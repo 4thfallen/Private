@@ -7219,7 +7219,7 @@ local Library do
     end
 end
 
-Library:Notification("Loaded!", "Interface tooked "..string.format("%.4f", os.clock() - LoadTick).." seconds to load", 5)
+Library:Notification("Loaded!", "Interface took "..string.format("%.4f", os.clock() - LoadTick).." seconds to load", 5)
 
 getgenv().Library = Library
 return Library
