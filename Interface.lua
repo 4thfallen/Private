@@ -1,6 +1,7 @@
 --[[
-    FALLEN-STARN ui library
+   scoot ui library
     made by samet
+	modified by fallen.starn
 ]]
 
 if Library then
