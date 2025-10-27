@@ -43,6 +43,10 @@ local Library do
     local UDimNew = UDim.new
     local Vector2New = Vector2.new
 
+    local ToString = tostring
+
+    local TaskWait = task.wait
+    
     local MathClamp = math.clamp
     local MathFloor = math.floor
     local MathAbs = math.abs
@@ -75,12 +79,12 @@ local Library do
         HttpTimeout = 10,
 
         Tween = {
-            Time = 0.4,
+            Time = 0.25,
             Style = Enum.EasingStyle.Quad,
             Direction = Enum.EasingDirection.Out
         },
 
-        FadeSpeed = 0.4,
+        FadeSpeed = 0.25,
 
         Folders = {
             Directory = "FALLEN-STARN",
@@ -588,17 +592,32 @@ local Library do
                 Item.Visible = true
             end
 
-            local Descendants = Item:GetDescendants()
-            TableInsert(Descendants, Item)
+            local fadeTargets = Library.FadeTargetCache[Item]
+
+            if not fadeTargets then
+                fadeTargets = { }
+
+                local Descendants = Item:GetDescendants()
+                TableInsert(Descendants, Item)
+
+                for _, Value in Descendants do
+                    local TransparencyProperty = Tween:GetProperty(Value)
+
+                    if not TransparencyProperty then
+                        continue
+                    end
+
+                    TableInsert(fadeTargets, {Object = Value, Property = TransparencyProperty})
+                end
+
+                Library.FadeTargetCache[Item] = fadeTargets
+            end
 
             local NewTween
 
-            for Index, Value in Descendants do
-                local TransparencyProperty = Tween:GetProperty(Value)
-
-                if not TransparencyProperty then
-                    continue
-                end
+            for _, entry in fadeTargets do
+                local Value = entry.Object
+                local TransparencyProperty = entry.Property
 
                 if type(TransparencyProperty) == "table" then
                     for _, Property in TransparencyProperty do
@@ -607,6 +626,11 @@ local Library do
                 else
                     NewTween = Tween:FadeItem(Value, TransparencyProperty, not Visibility, Speed)
                 end
+            end
+
+            if Visibility == false then
+                TaskWait(Speed or Library.Tween.Time)
+                Item.Visible = false
             end
         end
 
@@ -687,8 +711,18 @@ local Library do
                 if not Dragging then
                     return
                 end
+
                 local DragDelta = Input.Position - DragStart
-                self:Tween(TweenInfoNew(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2New(StartPosition.X.Scale, StartPosition.X.Offset + DragDelta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + DragDelta.Y)})
+                local NewPosition = UDim2New(
+                    StartPosition.X.Scale,
+                    StartPosition.X.Offset + DragDelta.X,
+                    StartPosition.Y.Scale,
+                    StartPosition.Y.Offset + DragDelta.Y
+                )
+
+                if Gui.Position ~= NewPosition then
+                    Gui.Position = NewPosition
+                end
             end
 
             self:Connect("InputBegan", function(Input)
@@ -764,7 +798,10 @@ local Library do
                                 ResizeMax = Maximum or Gui.Parent.AbsoluteSize - Gui.AbsoluteSize
                                 Delta = Start + UDim2New(0, input.Position.X, 0, input.Position.Y)
                                 Delta = UDim2New(0, math.clamp(Delta.X.Offset, Minimum.X, ResizeMax.X), 0, math.clamp(Delta.Y.Offset, Minimum.Y, ResizeMax.Y))
-                                Tween:Create(Gui, TweenInfoNew(0.17, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = Delta}, true)
+
+                                if Gui.Size ~= Delta then
+                                    Gui.Size = Delta
+                                end
                             end
                         end)
                     end
@@ -2299,8 +2336,20 @@ local Library do
 
                 Library.Flags[Slider.Flag] = Slider.Value
 
-                Items["Accent"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New((Slider.Value - Data.Min) / (Data.Max - Data.Min), 0, 1, 0)})
-                Items["Value"].Instance.Text = StringFormat("%s%s", tostring(Slider.Value), Data.Suffix)
+                local FillSize = UDim2New((Slider.Value - Data.Min) / (Data.Max - Data.Min), 0, 1, 0)
+
+                if Slider.Sliding then
+                    if Items["Accent"].Instance.Size ~= FillSize then
+                        Items["Accent"].Instance.Size = FillSize
+                    end
+                else
+                    Items["Accent"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = FillSize})
+                end
+
+                local TextValue = StringFormat("%s%s", ToString(Slider.Value), Data.Suffix)
+                if Items["Value"].Instance.Text ~= TextValue then
+                    Items["Value"].Instance.Text = TextValue
+                end
 
                 if Data.Callback then
                     Library:SafeCall(Data.Callback, Slider.Value)
