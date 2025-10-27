@@ -7,7 +7,7 @@ if Library then
     Library:Unload()
 end
 
-LoadTick = os.clock()
+getgenv().LoadTick = os.clock()
 
 local Library do
     local Workspace = game:GetService("Workspace")
