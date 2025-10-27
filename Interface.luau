@@ -1,5 +1,5 @@
 --[[
-    scoot ui library
+    FALLEN-STARN ui library
     made by samet
 ]]
 
@@ -7,7 +7,7 @@ if Library then
     Library:Unload()
 end
 
-local LoadTick = os.clock()
+LoadTick = os.clock()
 
 local Library do
     local Workspace = game:GetService("Workspace")
@@ -7218,8 +7218,6 @@ local Library do
         return SettingsPage
     end
 end
-
-Library:Notification("Loaded!", "Interface took "..string.format("%.4f", os.clock() - LoadTick).." seconds to load", 5)
 
 getgenv().Library = Library
 return Library
