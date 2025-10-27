@@ -79,12 +79,12 @@ local Library do
         HttpTimeout = 10,
 
         Tween = {
-            Time = 0.25,
+            Time = 0.2,
             Style = Enum.EasingStyle.Quad,
             Direction = Enum.EasingDirection.Out
         },
 
-        FadeSpeed = 0.25,
+        FadeSpeed = 0.2,
 
         Folders = {
             Directory = "FALLEN-STARN",
@@ -1994,29 +1994,35 @@ local Library do
                 if Toggle.Value then
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent", BorderColor3 = "Border"})
                     Items["Indicator"]:Tween(nil, {BackgroundColor3 = accentColor})
-                    Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
-                    local toggleTween = Items["Check"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 0, Size = UDim2New(1, 2, 1, 2)})
-                    if toggleTween and toggleTween.Tween then
-                        toggleTween.Tween.Completed:Once(function()
+                    
+                    task.delay(0.05, function()
+                        Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
+                        local toggleTween = Items["Check"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 0, Size = UDim2New(1, 2, 1, 2)})
+                        if toggleTween and toggleTween.Tween then
+                            toggleTween.Tween.Completed:Once(function()
+                                Items["Check"].Instance.ImageTransparency = 0
+                            end)
+                        else
                             Items["Check"].Instance.ImageTransparency = 0
-                        end)
-                    else
-                        Items["Check"].Instance.ImageTransparency = 0
-                        Items["Check"].Instance.Size = UDim2New(1, 2, 1, 2)
-                    end
+                            Items["Check"].Instance.Size = UDim2New(1, 2, 1, 2)
+                        end
+                    end)
                 else
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
                     Items["Indicator"]:Tween(nil, {BackgroundColor3 = elementColor})
-                    local toggleTween = Items["Check"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 1, Size = UDim2New(0, 0, 0, 0)})
-                    if toggleTween and toggleTween.Tween then
-                        toggleTween.Tween.Completed:Once(function()
+                    
+                    task.delay(0.05, function()
+                        local toggleTween = Items["Check"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 1, Size = UDim2New(0, 0, 0, 0)})
+                        if toggleTween and toggleTween.Tween then
+                            toggleTween.Tween.Completed:Once(function()
+                                Items["Check"].Instance.ImageTransparency = 1
+                                Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
+                            end)
+                        else
                             Items["Check"].Instance.ImageTransparency = 1
                             Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
-                        end)
-                    else
-                        Items["Check"].Instance.ImageTransparency = 1
-                        Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
-                    end
+                        end
+                    end)
                 end
 
                 if Data.Callback then
@@ -2659,7 +2665,6 @@ local Library do
                     Library.OpenFrames[Dropdown] = Dropdown
                 else
                     Items["OptionHolder"].Instance.Visible = false
-                    Items["OptionHolder"].Instance.Parent = Library.UnusedHolder.Instance
                     Library.OpenFrames[Dropdown] = nil
                     if renderCallback then
                         Library:RemoveHeartbeatCallback(renderCallback)
@@ -2672,6 +2677,12 @@ local Library do
                             Option:UpdateOutline()
                         end
                     end
+
+                    task.delay(0.2, function()
+                        if not Dropdown.IsOpen then
+                            Items["OptionHolder"].Instance.Parent = Library.UnusedHolder.Instance
+                        end
+                    end)
                 end
 
                 Debounce = false
@@ -4476,9 +4487,14 @@ local Library do
                     Library.OpenFrames[Keybind] = Keybind
                 else
                     Items["KeybindWindow"].Instance.Visible = false
-                    Items["KeybindWindow"].Instance.Parent = Library.UnusedHolder.Instance
                     Library.OpenFrames[Keybind] = nil
                     DisconnectRenderStepped()
+
+                    task.delay(0.2, function()
+                        if not Keybind.IsOpen then
+                            Items["KeybindWindow"].Instance.Parent = Library.UnusedHolder.Instance
+                        end
+                    end)
                 end
 
                 Debounce = false
