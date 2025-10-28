@@ -1,4 +1,4 @@
-if not game.PlaceId == 105788818579323 then return end
+if game.PlaceId == 105788818579323 then return end
 if not game.Loaded then game.Loaded:Wait() end
 -- // ===========================================================================================================================
 -- // ===========================================================================================================================
@@ -7,6 +7,7 @@ local HelperFunctions = {}
 local Game = game
 
 local VisibilityIgnore = {}
+local VisibilityPoints = {}
 
 local Workspace = Game.Workspace
 local LocalPlayer = Game.Players.LocalPlayer
@@ -73,12 +74,9 @@ function HelperFunctions:IsVisible(CharacterTarget)
 
     if not TargetCharacter:IsA("Model") then return false end
 
-    local FocusPart = TargetCharacter:FindFirstChild("HumanoidRootPart")
-    if not FocusPart then return false end
-
     if not Camera then return false end
-    local IgnoreArray = VisibilityIgnore
 
+    local IgnoreArray = VisibilityIgnore
     IgnoreArray[1] = TargetCharacter
 
     local LocalCharacter = LocalPlayer.Character
@@ -89,16 +87,23 @@ function HelperFunctions:IsVisible(CharacterTarget)
     end
     IgnoreArray[3] = nil
 
-    local CameraCFrame = Camera.CFrame
-    if not CameraCFrame then return false end
+    local FocusPart = TargetCharacter:FindFirstChild("HumanoidRootPart")
+        or TargetCharacter.PrimaryPart
+        or TargetCharacter:FindFirstChild("Head")
 
-    local Origin = CameraCFrame.Position
-    local Direction = FocusPart.Position - Origin
+    if not FocusPart then
+        local PivotCFrame = TargetCharacter:GetPivot()
+        if not PivotCFrame then return true end
 
-    if Direction:Dot(Direction) <= 0 then return true end
+        FocusPart = {Position = PivotCFrame.Position}
+    end
 
-    local HitResult = Workspace:Raycast(Origin, Direction, VisibilityRaycastParams)
-    return HitResult == nil
+    local PointsArray = VisibilityPoints
+    PointsArray[1], PointsArray[2], PointsArray[3] = nil, nil, nil
+    PointsArray[1] = FocusPart.Position
+
+    local Obstructors = Camera:GetPartsObscuringTarget(PointsArray, IgnoreArray)
+    return not Obstructors or Obstructors[1] == nil
 end
 -- // ===========================================================================================================================
 function HelperFunctions:IsAlive(CharacterTarget)
