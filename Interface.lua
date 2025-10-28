@@ -2531,6 +2531,7 @@ local Library do
         Components.Label = function(self, Data)
             local Label = { }
 
+            local updateSubElementsWidth
             local Items = { } do
                 Items["Label"] = Instances:Create("Frame", {
                     Parent = Data.Parent.Instance,
@@ -2567,27 +2568,42 @@ local Library do
                     Name = "\0",
                     BorderColor3 = FromRGB(0, 0, 0),
                     BackgroundTransparency = 1,
-                    Position = UDim2New(0, Items["Text"].Instance.TextBounds.X + 8, 0, 0),
-                    Size = UDim2New(0, 0, 1, 0),
+                    Position = UDim2New(1, 0, 0, 0),
+                    Size = UDim2New(1, 0, 1, 0),
+                    AnchorPoint = Vector2New(1, 0),
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
 
-                Instances:Create("UIListLayout", {
+                local SubElementsLayout = Instances:Create("UIListLayout", {
                     Parent = Items["SubElements"].Instance,
                     Name = "\0",
                     VerticalAlignment = Enum.VerticalAlignment.Center,
                     FillDirection = Enum.FillDirection.Horizontal,
+                    HorizontalAlignment = Enum.HorizontalAlignment.Right,
                     Padding = UDimNew(0, 6),
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
+
+                updateSubElementsWidth = function()
+                    local textBounds = Items["Text"].Instance.TextBounds.X
+                    local offset = Items["Text"].Instance.Position.X.Offset + textBounds + 6
+                    Items["SubElements"].Instance.Size = UDim2New(1, -offset, 1, 0)
+                end
+
+                updateSubElementsWidth()
+
+                Items["Text"].Instance:GetPropertyChangedSignal("TextBounds"):Connect(updateSubElementsWidth)
+                Items["Text"].Instance:GetPropertyChangedSignal("Position"):Connect(updateSubElementsWidth)
             end
 
             function Label:SetText(Text)
                 Text = tostring(Text)
 
                 Items["Text"].Instance.Text = Text
+                if updateSubElementsWidth then
+                    updateSubElementsWidth()
+                end
             end
 
             function Label:SetVisibility(Bool)
