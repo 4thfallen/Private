@@ -3260,7 +3260,7 @@ local Library do
                 end
             end
 
-            for Index, Value in Data.Items do
+            for _, Value in Data.Items do
                 Dropdown:Add(Value)
             end
 
@@ -6395,10 +6395,9 @@ local Library do
                 BorderColor3 = FromRGB(12, 12, 12),
                 AnchorPoint = Vector2New(0, 1),
                 BackgroundTransparency = 0.4000000059604645,
-                Position = UDim2New(0, 6, 1, -6),
-                Size = UDim2New(0, 0, 0, 20),
+                Position = UDim2New(0, 6, 1, -8),
+                Size = UDim2New(1, -46, 0, 18),
                 BorderSizePixel = 2,
-                AutomaticSize = Enum.AutomaticSize.X,
                 BackgroundColor3 = FromRGB(14, 17, 15)
             })  Items["Search"]:AddToTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
 
@@ -6426,13 +6425,12 @@ local Library do
                 TextColor3 = FromRGB(235, 235, 235),
                 BorderColor3 = FromRGB(0, 0, 0),
                 Text = "",
-                Size = UDim2New(0, 0, 1, 0),
+                Size = UDim2New(1, -28, 1, 0),
                 Position = UDim2New(0, 22, 0, 0),
                 BorderSizePixel = 0,
                 BackgroundTransparency = 1,
                 PlaceholderColor3 = FromRGB(185, 185, 185),
-                AutomaticSize = Enum.AutomaticSize.X,
-                PlaceholderText = "..",
+                PlaceholderText = "Search...",
                 TextSize = 9,
                 BackgroundColor3 = FromRGB(255, 255, 255)
             })  Items["Input"]:AddToTheme({TextColor3 = "Text", PlaceholderColor3 = "Placeholder Text"})
