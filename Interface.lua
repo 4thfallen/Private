@@ -2623,6 +2623,16 @@ local Library do
                 _holderWidth = 0,
             }
 
+            local closeBlacklist = { }
+
+            if Data.CloseBlacklist then
+                for _, entry in Data.CloseBlacklist do
+                    if entry then
+                        closeBlacklist[entry] = true
+                    end
+                end
+            end
+
             local Items = { } do
                 Items["Dropdown"] = Instances:Create("Frame", {
                     Parent = Data.Parent.Instance,
@@ -2903,7 +2913,7 @@ local Library do
                     local FramesToClose = { }
 
                     for Frame in pairs(Library.OpenFrames) do
-                        if Frame ~= Dropdown and Frame.SetOpen then
+                        if Frame ~= Dropdown and Frame.SetOpen and not closeBlacklist[Frame] then
                             TableInsert(FramesToClose, Frame)
                         end
                     end
@@ -3001,7 +3011,9 @@ local Library do
                     end
 
                     Dropdown.Value = Option
-                    Library.Flags[Dropdown.Flag] = Option
+                    if Dropdown.Flag then
+                        Library.Flags[Dropdown.Flag] = Option
+                    end
 
                     for _, Value in Option do
                         local OptionData = Dropdown.Options[Value]
@@ -3120,14 +3132,18 @@ local Library do
 
                         OptionData:Toggle(Index and "Inactive" or "Active")
 
-                        Library.Flags[Dropdown.Flag] = Dropdown.Value
+                        if Dropdown.Flag then
+                            Library.Flags[Dropdown.Flag] = Dropdown.Value
+                        end
 
                         local TextFormat = #Dropdown.Value > 0 and TableConcat(Dropdown.Value, ", ") or "--"
                         Items["Value"].Instance.Text = TextFormat
                     else
                         if OptionData.Selected then
                             Dropdown.Value = OptionData.Name
-                            Library.Flags[Dropdown.Flag] = OptionData.Name
+                            if Dropdown.Flag then
+                                Library.Flags[Dropdown.Flag] = OptionData.Name
+                            end
 
                             OptionData.Selected = true
                             OptionData:Toggle("Active")
@@ -3142,7 +3158,9 @@ local Library do
                             Items["Value"].Instance.Text = OptionData.Name
                         else
                             Dropdown.Value = nil
-                            Library.Flags[Dropdown.Flag] = nil
+                            if Dropdown.Flag then
+                                Library.Flags[Dropdown.Flag] = nil
+                            end
 
                             OptionData.Selected = false
                             OptionData:Toggle("Inactive")
@@ -3250,8 +3268,10 @@ local Library do
                 Dropdown:Set(Data.Default)
             end
 
-            Library.SetFlags[Dropdown.Flag] = function(Value)
-                Dropdown:Set(Value)
+            if Dropdown.Flag then
+                Library.SetFlags[Dropdown.Flag] = function(Value)
+                    Dropdown:Set(Value)
+                end
             end
 
             return Dropdown, Items
@@ -3860,11 +3880,10 @@ local Library do
                     Name = "Animations",
                     Items = {"Rainbow", "Fade", "Fade alpha", "Linear"},
                     Default = nil,
-                    Flag = Colorpicker.Flag.."Animation",
-                    Multi = false,
-                    Debounce = Colorpicker,
+                    CloseBlacklist = {Colorpicker},
                     Callback = function(Value)
                         CurrentAnimation = Value
+
                         if Value == "Rainbow" then
                             if KeyframeOneLabel and KeyframeTwoLabel and AnimationSpeedSlider then
                                 KeyframeOneLabel:SetVisibility(false)
@@ -4032,7 +4051,7 @@ local Library do
                     Max = 100,
                     Decimals = 0.1,
                     Default = 20,
-                    Suffix = "%",
+                    Suffix = " %",
                 })
 
                 AnimationSpeedSliderItems["Slider"].Instance.Position = UDim2New(0, 8, 0, 85)
@@ -4249,7 +4268,8 @@ local Library do
                         local FramesToClose = { }
 
                         for Frame in pairs(Library.OpenFrames) do
-                            if Frame ~= Colorpicker and Frame ~= AnimationsDropdownItems and Frame.SetOpen then
+                            local isAnimationsDropdown = AnimationsDropdown and Frame == AnimationsDropdown
+                            if Frame ~= Colorpicker and not isAnimationsDropdown and Frame.SetOpen then
                                 TableInsert(FramesToClose, Frame)
                             end
                         end
