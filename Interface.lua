@@ -1931,6 +1931,7 @@ local Library do
                 Flag = Data.Flag
             }
 
+            local updateSubElementsWidth
             local Items = { } do
                 Items["Toggle"] = Instances:Create("TextButton", {
                     Parent = Data.Parent.Instance,
@@ -2016,21 +2017,32 @@ local Library do
                     Name = "\0",
                     BorderColor3 = FromRGB(0, 0, 0),
                     BackgroundTransparency = 1,
-                    Position = UDim2New(0, Items["Text"].Instance.TextBounds.X + 30, 0, 0),
-                    Size = UDim2New(0, 0, 1, 0),
+                    Position = UDim2New(1, 0, 0, 0),
+                    Size = UDim2New(1, 0, 1, 0),
+                    AnchorPoint = Vector2New(1, 0),
                     BorderSizePixel = 0,
-                    AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
 
-                Instances:Create("UIListLayout", {
+                local SubElementsLayout = Instances:Create("UIListLayout", {
                     Parent = Items["SubElements"].Instance,
                     Name = "\0",
                     VerticalAlignment = Enum.VerticalAlignment.Center,
                     FillDirection = Enum.FillDirection.Horizontal,
+                    HorizontalAlignment = Enum.HorizontalAlignment.Right,
                     Padding = UDimNew(0, 6),
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
+
+                updateSubElementsWidth = function()
+                    local textBounds = Items["Text"].Instance.TextBounds.X
+                    local offset = Items["Text"].Instance.Position.X.Offset + textBounds + 6
+                    Items["SubElements"].Instance.Size = UDim2New(1, -offset, 1, 0)
+                end
+
+                updateSubElementsWidth()
+
+                Items["Text"].Instance:GetPropertyChangedSignal("TextBounds"):Connect(updateSubElementsWidth)
             end
 
             function Toggle:Get()
@@ -2040,6 +2052,9 @@ local Library do
             function Toggle:SetText(Text)
                 Text = tostring(Text)
                 Items["Text"].Instance.Text = Text
+                if updateSubElementsWidth then
+                    updateSubElementsWidth()
+                end
             end
 
             function Toggle:Set(Value)
@@ -2375,6 +2390,7 @@ local Library do
                     Name = "\0",
                     FontFace = Library.Font,
                     TextColor3 = FromRGB(235, 235, 235),
+                    RichText = true,
                     BorderColor3 = FromRGB(0, 0, 0),
                     Text = "50%",
                     AnchorPoint = Vector2New(1, 0),
@@ -2385,7 +2401,7 @@ local Library do
                     AutomaticSize = Enum.AutomaticSize.X,
                     TextSize = 9,
                     BackgroundColor3 = FromRGB(255, 255, 255)
-                })  Items["Value"]:AddToTheme({TextColor3 = "Text"})
+                })  Items["Value"]:AddToTheme({TextColor3 = "Accent"})
 
                 Items["Value"]:TextBorder()
             end
@@ -2413,7 +2429,14 @@ local Library do
                     Items["Accent"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = FillSize})
                 end
 
-                local TextValue = StringFormat("%s%s", ToString(Slider.Value), Data.Suffix)
+                local ValueText = Library:ToRich(ToString(Slider.Value), Library.Theme.Accent)
+                local SuffixText = ""
+
+                if Data.Suffix and Data.Suffix ~= "" then
+                    SuffixText = Library:ToRich(Data.Suffix, nil)
+                end
+
+                local TextValue = ValueText .. SuffixText
                 if Items["Value"].Instance.Text ~= TextValue then
                     Items["Value"].Instance.Text = TextValue
                 end
@@ -4480,11 +4503,14 @@ local Library do
                     TextTransparency = 0.4000000059604645,
                     Text = "[MB2]",
                     AutoButtonColor = false,
+                    AnchorPoint = Vector2New(1, 0.5),
+                    Position = UDim2New(1, 0, 0.5, 0),
                     Size = UDim2New(0, 0, 1, 0),
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     BorderColor3 = FromRGB(0, 0, 0),
                     AutomaticSize = Enum.AutomaticSize.X,
+                    TextXAlignment = Enum.TextXAlignment.Right,
                     TextSize = 10,
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })  Items["KeyButton"]:AddToTheme({TextColor3 = "Text"})
