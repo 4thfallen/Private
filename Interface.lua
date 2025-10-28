@@ -118,6 +118,7 @@ local Library do
         CopiedColor = nil,
 
         OpenFrames = { },
+        OpenColorpickers = { },
         Keybinds = { },
 
         CurrentPage = nil,
@@ -4254,22 +4255,132 @@ local Library do
                     windowInstance.Visible = true
                     windowInstance.Parent = Library.Holder.Instance
 
+                    local openColorpickers = Library.OpenColorpickers
+                    if not TableFind(openColorpickers, Colorpicker) then
+                        TableInsert(openColorpickers, Colorpicker)
+                    end
+
+                    windowInstance.BackgroundTransparency = 0
+
+                    Colorpicker._pendingOpenAnimation = true
+
+                    local maxColumns = 2
+                    local maxRowsPerColumn = 2
+                    local maxPickers = maxColumns * maxRowsPerColumn
+
+                    while #openColorpickers > maxPickers do
+                        local removed = TableRemove(openColorpickers, 1)
+                        if removed and removed ~= Colorpicker and removed.SetOpen then
+                            removed:SetOpen(false)
+                        end
+                    end
+
                     DisconnectRenderStepped()
                     RenderSteppedName = "ColorpickerRender" .. HttpService:GenerateGUID(false)
-                    Library:Connect(RunService.Heartbeat, function()
-                        if windowItem and windowItem.Instance and buttonItem and buttonItem.Instance then
-                            windowItem.Instance.Position = UDim2New(0, buttonItem.Instance.AbsolutePosition.X, 0, buttonItem.Instance.AbsolutePosition.Y + buttonItem.Instance.AbsoluteSize.Y + 5)
+
+                    local function applyPosition()
+                        local frame = windowItem and windowItem.Instance
+
+                        if not frame then
+                            return nil
+                        end
+
+                        local windowItems = Library.CurrentWindowItems
+                        local mainWindow = windowItems and windowItems["Window"] and windowItems["Window"].Instance
+                        local pickerIndex = TableFind(openColorpickers, Colorpicker) or 1
+
+                        local verticalSpacing = 12
+                        local horizontalSpacing = 12
+                        local frameHeight = frame.AbsoluteSize.Y
+                        local frameWidth = frame.AbsoluteSize.X
+
+                        if frameHeight <= 0 then
+                            frameHeight = frame.Size.Y.Offset or frameHeight
+                        end
+
+                        if frameHeight <= 0 then
+                            frameHeight = 220
+                        end
+
+                        if frameWidth <= 0 then
+                            frameWidth = frame.Size.X.Offset or frameWidth
+                        end
+
+                        if frameWidth <= 0 then
+                            frameWidth = 266
+                        end
+
+                        local columnIndex = pickerIndex <= maxRowsPerColumn and 1 or 0
+                        local rowIndex = (pickerIndex - 1) % maxRowsPerColumn
+                        local baseOffsetY = rowIndex * (frameHeight + verticalSpacing)
+
+                        if mainWindow then
+                            local mainPos = mainWindow.AbsolutePosition
+                            local mainSize = mainWindow.AbsoluteSize
+
+                            local targetX
+                            if columnIndex == 1 then
+                                targetX = mainPos.X + mainSize.X + horizontalSpacing
+                            else
+                                targetX = mainPos.X - frameWidth - horizontalSpacing
+                            end
+                            local targetY = mainPos.Y + baseOffsetY
+
+                            frame.Position = UDim2New(0, targetX, 0, targetY)
                         else
+                            local currentCamera = Camera
+                            if currentCamera then
+                                local viewportSize = currentCamera.ViewportSize
+                                local targetX
+                                if columnIndex == 1 then
+                                    targetX = viewportSize.X - frameWidth - 20
+                                else
+                                    targetX = 20
+                                end
+                                local targetY = 20 + baseOffsetY
+                                frame.Position = UDim2New(0, targetX, 0, targetY)
+                            else
+                                frame.Position = UDim2New(1, -frame.AbsoluteSize.X - 10, 0, 10)
+                            end
+                        end
+
+                        return frameWidth, frameHeight
+                    end
+
+                    local initialWidth, initialHeight = applyPosition()
+
+                    local defaultWidth = 266
+                    local defaultHeight = 258
+
+                    local targetWidth = MathMax(initialWidth or defaultWidth, defaultWidth)
+                    local targetHeight = MathMax(initialHeight or defaultHeight, defaultHeight)
+
+                    local startWidth = MathMax(targetWidth * 0.85, defaultWidth * 0.75)
+                    local startHeight = MathMax(targetHeight * 0.85, defaultHeight * 0.75)
+
+                    windowInstance.Size = UDim2New(0, startWidth, 0, startHeight)
+
+                    windowItem:Tween(TweenInfoNew(Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction), {
+                        Size = UDim2New(0, targetWidth, 0, targetHeight)
+                    })
+
+                    Library:Connect(RunService.Heartbeat, function()
+                        if not applyPosition() then
                             DisconnectRenderStepped()
                         end
                     end, RenderSteppedName)
 
                     if not Data.Debounce then
                         local FramesToClose = { }
+                        local colorpickerSkip = { }
+                        for _, picker in Library.OpenColorpickers do
+                            colorpickerSkip[picker] = true
+                        end
 
                         for Frame in pairs(Library.OpenFrames) do
                             local isAnimationsDropdown = AnimationsDropdown and Frame == AnimationsDropdown
-                            if Frame ~= Colorpicker and not isAnimationsDropdown and Frame.SetOpen then
+                            local isColorpicker = colorpickerSkip[Frame]
+                            if Frame ~= Colorpicker and not isAnimationsDropdown and not isColorpicker and Frame.SetOpen then
                                 TableInsert(FramesToClose, Frame)
                             end
                         end
@@ -4282,6 +4393,14 @@ local Library do
                     end
                 else
                     DisconnectRenderStepped()
+
+                    Colorpicker._pendingOpenAnimation = false
+
+                    local openColorpickers = Library.OpenColorpickers
+                    local pickerIndex = TableFind(openColorpickers, Colorpicker)
+                    if pickerIndex then
+                        TableRemove(openColorpickers, pickerIndex)
+                    end
 
                     if windowItem and Library:IsMouseOverFrame(windowItem) then
                         local mouseBackground = Items["MouseBackground"]
@@ -5805,27 +5924,15 @@ local Library do
         local statsSeparator = Library:ToRich(" | ", Library.Theme.Accent)
         local infoSeparator = Library:ToRich(" | ", Library.Theme.Accent)
 
-        local serverRegionPlaceIds = {
-            DANFFA = 105788818579323;
-        }
-
-        local includeServerRegion = false
-        for _, placeId in pairs(serverRegionPlaceIds) do
-            if placeId == game.PlaceId then
-                includeServerRegion = true
-                break
-            end
-        end
-
         local serverRegion
-        if includeServerRegion then
+        do
             local location = ReplicatedStorage:FindFirstChild("ServerLocation")
-            if location ~= nil then
+            if location then
                 local value = location.Value
                 if value ~= nil then
                     local text = tostring(value)
                     if text ~= "" then
-                        serverRegion = text
+                        serverRegion = StringGSub(text, "_", " ")
                     end
                 end
             end
@@ -5836,7 +5943,7 @@ local Library do
                 Library:ToRich(gameName, Library.Theme.Text)
             }
 
-            if includeServerRegion and serverRegion and serverRegion ~= "" then
+            if serverRegion and serverRegion ~= "" then
                 TableInsert(segments, Library:ToRich(serverRegion, Library.Theme.Text))
             end
 
