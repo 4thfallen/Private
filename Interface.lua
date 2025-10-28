@@ -51,6 +51,7 @@ local Library do
     local MathFloor = math.floor
     local MathAbs = math.abs
     local MathSin = math.sin
+    local MathMax = math.max
 
     local TableInsert = table.insert
     local TableFind = table.find
@@ -470,6 +471,7 @@ local Library do
     end
 
     local Tween = { } do
+        local FadeOriginalTransparency = setmetatable({ }, { __mode = "k" })
         Tween.__index = Tween
 
         Tween.Create = function(self, Item, Info, Goal, IsRawItem)
@@ -511,17 +513,41 @@ local Library do
         Tween.FadeItem = function(self, Item, Property, Visibility, Speed)
             local Item = Item or self.Item
 
-            local OldTransparency = Item[Property]
-            Item[Property] = Visibility and 1 or OldTransparency
+            local propertyCache = FadeOriginalTransparency[Item]
+            if not propertyCache then
+                propertyCache = { }
+                FadeOriginalTransparency[Item] = propertyCache
+            end
+
+            local baseValue = propertyCache[Property]
+            if baseValue == nil then
+                baseValue = Item[Property]
+                propertyCache[Property] = baseValue
+            end
+
+            local startValue
+            local targetValue
+
+            if Visibility then
+                startValue = Item[Property]
+                if startValue == nil then
+                    startValue = 1
+                end
+                targetValue = baseValue
+            else
+                startValue = baseValue
+                targetValue = 1
+            end
+
+            Item[Property] = startValue
 
             local NewTween = Tween:Create(Item, TweenInfoNew(Speed or Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction), {
-                [Property] = Visibility and OldTransparency or 1
+                [Property] = targetValue
             }, true)
 
             NewTween.Tween.Completed:Once(function()
                 if not Visibility then
-                    task.wait()
-                    Item[Property] = OldTransparency
+                    Item[Property] = 1
                 end
             end)
 
@@ -705,50 +731,48 @@ local Library do
             local Dragging = false
             local DragStart
             local StartPosition
-            local dragToken
 
-            local Set = function(Input)
-                if not Dragging then
-                    return
-                end
-
+            local function Set(Input)
                 local DragDelta = Input.Position - DragStart
-                local NewPosition = UDim2New(
-                    StartPosition.X.Scale,
-                    StartPosition.X.Offset + DragDelta.X,
-                    StartPosition.Y.Scale,
-                    StartPosition.Y.Offset + DragDelta.Y
-                )
-
-                if Gui.Position ~= NewPosition then
-                    Gui.Position = NewPosition
-                end
+                self:Tween(TweenInfoNew(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                    Position = UDim2New(
+                        StartPosition.X.Scale,
+                        StartPosition.X.Offset + DragDelta.X,
+                        StartPosition.Y.Scale,
+                        StartPosition.Y.Offset + DragDelta.Y
+                    )
+                })
             end
+
+            local InputChanged
 
             self:Connect("InputBegan", function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                     Dragging = true
+
                     DragStart = Input.Position
                     StartPosition = Gui.Position
 
-                    if not dragToken then
-                        dragToken = Library:AddInputChangedCallback(function(input)
-                            if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
-                                return
-                            end
-                            Set(input)
-                        end)
+                    if InputChanged then
+                        return
                     end
 
-                    Input.Changed:Connect(function()
+                    InputChanged = Input.Changed:Connect(function()
                         if Input.UserInputState == Enum.UserInputState.End then
                             Dragging = false
-                            if dragToken then
-                                Library:RemoveInputChangedCallback(dragToken)
-                                dragToken = nil
-                            end
+
+                            InputChanged:Disconnect()
+                            InputChanged = nil
                         end
                     end)
+                end
+            end)
+
+            Library:Connect(UserInputService.InputChanged, function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
+                    if Dragging then
+                        Set(Input)
+                    end
                 end
             end)
 
@@ -1572,6 +1596,9 @@ local Library do
                 end
 
                 local lastTween
+                local sizeTween
+                local smoothTweenInfo = TweenInfoNew(Library.Tween.Time + 0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+                local fadeDuration = Library.FadeSpeed
 
                 for _, entry in fadeTargets do
                     local target = entry.Object
@@ -1579,10 +1606,10 @@ local Library do
 
                     if type(property) == "table" then
                         for _, prop in property do
-                            lastTween = Tween:FadeItem(target, prop, Bool, Data.Window.FadeTime)
+                            lastTween = Tween:FadeItem(target, prop, Bool, fadeDuration)
                         end
                     else
-                        lastTween = Tween:FadeItem(target, property, Bool, Data.Window.FadeTime)
+                        lastTween = Tween:FadeItem(target, property, Bool, fadeDuration)
                     end
                 end
 
@@ -1646,6 +1673,8 @@ local Library do
                     BackgroundColor3 = FromRGB(25, 30, 26)
                 })  Items["Inactive"]:AddToTheme({BackgroundColor3 = "Page Background", BorderColor3 = "Border"})
 
+                Items["Inactive"].Instance.AutomaticSize = Enum.AutomaticSize.None
+
                 Items["ButtonBorder"] = Instances:Create("UIStroke", {
                     Parent = Items["Inactive"].Instance,
                     Name = "\0",
@@ -1674,20 +1703,47 @@ local Library do
 
                 Items["TextStroke"] = Items["Text"]:TextBorder()
 
-                Instances:Create("UIPadding", {
+                Items["TextPadding"] = Instances:Create("UIPadding", {
                     Parent = Items["Text"].Instance,
                     Name = "\0",
                     PaddingRight = UDimNew(0, 8),
                     PaddingLeft = UDimNew(0, 8)
                 })
 
-                Instances:Create("UIPadding", {
+                Items["InactivePadding"] = Instances:Create("UIPadding", {
                     Parent = Items["Inactive"].Instance,
                     Name = "\0",
                     PaddingTop = UDimNew(0, 2),
                     PaddingLeft = UDimNew(0, 18),
                     PaddingRight = UDimNew(0, 12)
                 })
+
+                local function updateSubPageButtonWidth()
+                    local textWidth = Items["Text"].Instance.TextBounds.X
+                    local textPadding = 0
+                    local buttonPadding = 0
+
+                    if Items["TextPadding"] and Items["TextPadding"].Instance then
+                        textPadding = Items["TextPadding"].Instance.PaddingLeft.Offset + Items["TextPadding"].Instance.PaddingRight.Offset
+                    end
+
+                    if Items["InactivePadding"] and Items["InactivePadding"].Instance then
+                        buttonPadding = Items["InactivePadding"].Instance.PaddingLeft.Offset + Items["InactivePadding"].Instance.PaddingRight.Offset
+                    end
+
+                    local totalWidth = textWidth + textPadding + buttonPadding
+                    local adjustedWidth = math.max(60, totalWidth - 12)
+
+                    Items["Inactive"].Instance.Size = UDim2New(0, adjustedWidth, 0, 20)
+                end
+
+                updateSubPageButtonWidth()
+
+                Library:Connect(
+                    Items["Text"].Instance:GetPropertyChangedSignal("TextBounds"),
+                    updateSubPageButtonWidth,
+                    "__subpage_textbounds_" .. HttpService:GenerateGUID(false)
+                )
 
                 Items["Glow"] = Instances:Create("Frame", {
                     Parent = Items["Inactive"].Instance,
@@ -1826,6 +1882,8 @@ local Library do
                 end
 
                 local lastTween
+                local sizeTween
+                local smoothTweenInfo = TweenInfoNew(Library.Tween.Time + 0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 
                 for _, entry in fadeTargets do
                     local target = entry.Object
@@ -1988,41 +2046,38 @@ local Library do
                 Toggle.Value = Value
                 Library.Flags[Toggle.Flag] = Value
 
-                local accentColor = Library.Theme.Accent
-                local elementColor = Library.Theme.Element
+                local checkTweenInfo = TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+                local function tweenCheck(transparency, size)
+                    return Items["Check"]:Tween(checkTweenInfo, {ImageTransparency = transparency, Size = size})
+                end
 
                 if Toggle.Value then
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent", BorderColor3 = "Border"})
-                    Items["Indicator"]:Tween(nil, {BackgroundColor3 = accentColor})
-                    
-                    task.delay(0.05, function()
-                        Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
-                        local toggleTween = Items["Check"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 0, Size = UDim2New(1, 2, 1, 2)})
-                        if toggleTween and toggleTween.Tween then
-                            toggleTween.Tween.Completed:Once(function()
-                                Items["Check"].Instance.ImageTransparency = 0
-                            end)
-                        else
-                            Items["Check"].Instance.ImageTransparency = 0
-                            Items["Check"].Instance.Size = UDim2New(1, 2, 1, 2)
-                        end
-                    end)
+                    local indicatorTween = Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Accent})
+
+                    local function showCheck()
+                        tweenCheck(0, UDim2New(1, 2, 1, 2))
+                    end
+
+                    if indicatorTween and indicatorTween.Tween then
+                        indicatorTween.Tween.Completed:Once(showCheck)
+                    else
+                        showCheck()
+                    end
                 else
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
-                    Items["Indicator"]:Tween(nil, {BackgroundColor3 = elementColor})
-                    
-                    task.delay(0.05, function()
-                        local toggleTween = Items["Check"]:Tween(TweenInfoNew(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 1, Size = UDim2New(0, 0, 0, 0)})
-                        if toggleTween and toggleTween.Tween then
-                            toggleTween.Tween.Completed:Once(function()
-                                Items["Check"].Instance.ImageTransparency = 1
-                                Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
-                            end)
-                        else
-                            Items["Check"].Instance.ImageTransparency = 1
-                            Items["Check"].Instance.Size = UDim2New(0, 0, 0, 0)
-                        end
-                    end)
+                    local indicatorTween = Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Element})
+
+                    local function hideCheck()
+                        tweenCheck(1, UDim2New(0, 0, 0, 0))
+                    end
+
+                    if indicatorTween and indicatorTween.Tween then
+                        indicatorTween.Tween.Completed:Once(hideCheck)
+                    else
+                        hideCheck()
+                    end
                 end
 
                 if Data.Callback then
@@ -2162,10 +2217,16 @@ local Library do
 
                     Library:SafeCall(Callback)
 
-                    task.delay(0.1, function()
+                    local function revert()
                         SubItems["NewButton"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
                         SubItems["NewButton"]:Tween(nil, {BackgroundColor3 = elementColor})
-                    end)
+                    end
+
+                    if pressTween and pressTween.Tween then
+                        pressTween.Tween.Completed:Once(revert)
+                    else
+                        revert()
+                    end
                 end
 
                 function NewButton:SetVisibility(Bool)
@@ -2518,7 +2579,9 @@ local Library do
                 Flag = Data.Flag,
                 Value = { },
                 Options = { },
-                IsOpen = false
+                IsOpen = false,
+                _openHeight = 0,
+                _holderWidth = 0,
             }
 
             local Items = { } do
@@ -2623,6 +2686,7 @@ local Library do
                     Size = UDim2New(1, 0, 0, 25),
                     ZIndex = 5,
                     AutomaticSize = Enum.AutomaticSize.Y,
+                    ClipsDescendants = true,
                     BackgroundColor3 = FromRGB(20, 24, 21)
                 })  Items["OptionHolder"]:AddToTheme({BackgroundColor3 = "Inline", BorderColor3 = "Border"})
 
@@ -2634,7 +2698,7 @@ local Library do
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border
                 }):AddToTheme({Color = "Outline"})
 
-                Instances:Create("UIPadding", {
+                Items["OptionPadding"] = Instances:Create("UIPadding", {
                     Parent = Items["OptionHolder"].Instance,
                     Name = "\0",
                     PaddingTop = UDimNew(0, 5),
@@ -2643,12 +2707,37 @@ local Library do
                     PaddingLeft = UDimNew(0, 8)
                 })
 
-                Instances:Create("UIListLayout", {
+                Items["OptionLayout"] = Instances:Create("UIListLayout", {
                     Parent = Items["OptionHolder"].Instance,
                     Name = "\0",
                     Padding = UDimNew(0, 3),
                     SortOrder = Enum.SortOrder.LayoutOrder
                 })
+            end
+
+            local function computeOptionHolderHeight()
+                local paddingInstance = Items["OptionPadding"] and Items["OptionPadding"].Instance
+                local layoutInstance = Items["OptionLayout"] and Items["OptionLayout"].Instance
+
+                local paddingTop = paddingInstance and paddingInstance.PaddingTop.Offset or 0
+                local paddingBottom = paddingInstance and paddingInstance.PaddingBottom.Offset or 0
+
+                local baseHeight = layoutInstance and layoutInstance.AbsoluteContentSize.Y or 0
+                local totalHeight = baseHeight + paddingTop + paddingBottom
+
+                if totalHeight <= 0 then
+                    local optionCount = 0
+                    for _ in Dropdown.Options do
+                        optionCount += 1
+                    end
+
+                    if optionCount > 0 then
+                        local rowPadding = layoutInstance and layoutInstance.Padding.Offset or 0
+                        totalHeight = (optionCount * 18) + paddingTop + paddingBottom + (math.max(optionCount - 1, 0) * rowPadding)
+                    end
+                end
+
+                return math.max(totalHeight, 0)
             end
 
             function Dropdown:Get()
@@ -2659,30 +2748,29 @@ local Library do
             local renderCallback
 
             local function Finalize()
+                local optionHolderInstance = Items["OptionHolder"].Instance
+
+                optionHolderInstance.AutomaticSize = Enum.AutomaticSize.None
+
                 if Dropdown.IsOpen then
-                    Items["OptionHolder"].Instance.Visible = true
-                    Items["OptionHolder"].Instance.Parent = Library.Holder.Instance
+                    optionHolderInstance.AutomaticSize = Enum.AutomaticSize.Y
+                    optionHolderInstance.ClipsDescendants = false
+                    optionHolderInstance.Size = UDim2New(0, Dropdown._holderWidth or optionHolderInstance.Size.X.Offset, 0, Dropdown._openHeight or optionHolderInstance.Size.Y.Offset)
+
+                    optionHolderInstance.Visible = true
+                    optionHolderInstance.Parent = Library.Holder.Instance
                     Library.OpenFrames[Dropdown] = Dropdown
                 else
-                    Items["OptionHolder"].Instance.Visible = false
+                    optionHolderInstance.ClipsDescendants = true
+                    optionHolderInstance.Size = UDim2New(0, Dropdown._holderWidth or optionHolderInstance.Size.X.Offset, 0, 0)
+
+                    optionHolderInstance.Visible = false
+                    optionHolderInstance.Parent = Library.UnusedHolder.Instance
                     Library.OpenFrames[Dropdown] = nil
                     if renderCallback then
                         Library:RemoveHeartbeatCallback(renderCallback)
                         renderCallback = nil
                     end
-
-                    for _, Option in Dropdown.Options do
-                        if Option.Hovering then
-                            Option.Hovering = false
-                            Option:UpdateOutline()
-                        end
-                    end
-
-                    task.delay(0.2, function()
-                        if not Dropdown.IsOpen then
-                            Items["OptionHolder"].Instance.Parent = Library.UnusedHolder.Instance
-                        end
-                    end)
                 end
 
                 Debounce = false
@@ -2695,6 +2783,64 @@ local Library do
 
                 Dropdown.IsOpen = Bool
                 Debounce = true
+
+                local optionHolderInstance = Items["OptionHolder"].Instance
+                local realDropdownInstance = Items["RealDropdown"].Instance
+
+                local dropdownFrame = Items["Dropdown"].Instance
+
+                if Bool then
+                    if optionHolderInstance.Parent ~= Library.Holder.Instance then
+                        optionHolderInstance.Parent = Library.Holder.Instance
+                    end
+                    optionHolderInstance.Visible = true
+                    optionHolderInstance.AutomaticSize = Enum.AutomaticSize.Y
+                else
+                    optionHolderInstance.AutomaticSize = Enum.AutomaticSize.None
+                end
+
+                local dropdownWidth = Dropdown._holderWidth or 0
+
+                if Bool or dropdownWidth <= 0 then
+                    dropdownWidth = realDropdownInstance.AbsoluteSize.X
+                    if dropdownWidth <= 0 then
+                        dropdownWidth = realDropdownInstance.Size.X.Offset
+                    end
+                    if dropdownWidth <= 0 and dropdownFrame then
+                        dropdownWidth = dropdownFrame.AbsoluteSize.X
+                    end
+                    if dropdownWidth <= 0 then
+                        dropdownWidth = Dropdown._holderWidth or 160
+                    end
+
+                    Dropdown._holderWidth = dropdownWidth
+                end
+
+                local measuredHeight = computeOptionHolderHeight()
+                if Bool then
+                    if measuredHeight > 0 then
+                        Dropdown._openHeight = measuredHeight
+                    elseif Dropdown._openHeight <= 0 then
+                        Dropdown._openHeight = optionHolderInstance.AbsoluteSize.Y
+                    end
+                else
+                    if optionHolderInstance.AbsoluteSize.Y > 0 then
+                        Dropdown._openHeight = optionHolderInstance.AbsoluteSize.Y
+                    elseif measuredHeight > 0 and Dropdown._openHeight <= 0 then
+                        Dropdown._openHeight = measuredHeight
+                    end
+                end
+
+                Dropdown._openHeight = math.max(Dropdown._openHeight or 0, 0)
+
+                optionHolderInstance.AutomaticSize = Enum.AutomaticSize.None
+                optionHolderInstance.ClipsDescendants = true
+
+                if Bool then
+                    optionHolderInstance.Size = UDim2New(0, dropdownWidth, 0, 0)
+                else
+                    optionHolderInstance.Size = UDim2New(0, dropdownWidth, 0, Dropdown._openHeight)
+                end
 
                 if Dropdown.IsOpen then
                     Items["OptionHolder"].Instance.Visible = true
@@ -2754,6 +2900,18 @@ local Library do
                 end
 
                 local lastTween
+                local sizeTween
+                local smoothTweenInfo = TweenInfoNew(Library.Tween.Time + 0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+                local finalizeHandled = false
+
+                local function completeFinalize()
+                    if finalizeHandled then
+                        return
+                    end
+
+                    finalizeHandled = true
+                    Finalize()
+                end
 
                 for _, entry in fadeTargets do
                     local target = entry.Object
@@ -2768,15 +2926,29 @@ local Library do
                     end
                 end
 
+                local targetHeight = Bool and Dropdown._openHeight or 0
+                if Dropdown._holderWidth > 0 then
+                    sizeTween = Items["OptionHolder"]:Tween(smoothTweenInfo, {
+                        Size = UDim2New(0, Dropdown._holderWidth, 0, targetHeight)
+                    })
+                end
+
+                if sizeTween and sizeTween.Tween then
+                    lastTween = sizeTween
+                end
+
                 if lastTween and lastTween.Tween then
                     local CompletionName = "DropdownTweenComplete" .. HttpService:GenerateGUID(false)
                     Library:Connect(lastTween.Tween.Completed, function()
                         Library:Disconnect(CompletionName)
-                        Finalize()
+                        completeFinalize()
                     end, CompletionName)
                 else
-                    Finalize()
+                    completeFinalize()
                 end
+
+                local fallbackDelay = MathMax(Library.Tween.Time + 0.1, (Library.FadeSpeed or 0.2) + 0.1)
+                task.delay(fallbackDelay, completeFinalize)
             end
 
             function Dropdown:SetVisibility(Bool)
@@ -2792,7 +2964,7 @@ local Library do
                     Dropdown.Value = Option
                     Library.Flags[Dropdown.Flag] = Option
 
-                    for Index, Value in Option do
+                    for _, Value in Option do
                         local OptionData = Dropdown.Options[Value]
 
                         if not OptionData then
@@ -2921,7 +3093,7 @@ local Library do
                             OptionData.Selected = true
                             OptionData:Toggle("Active")
 
-                            for Index, Value in Dropdown.Options do
+                            for _, Value in Dropdown.Options do
                                 if Value ~= OptionData then
                                     Value.Selected = false
                                     Value:Toggle("Inactive")
@@ -5536,27 +5708,47 @@ local Library do
         local statsSeparator = Library:ToRich(" | ", Library.Theme.Accent)
         local infoSeparator = Library:ToRich(" | ", Library.Theme.Accent)
 
-        local serverRegion = "Unknown Region"
-        do
+        local serverRegionPlaceIds = {
+            DANFFA = 105788818579323;
+        }
+
+        local includeServerRegion = false
+        for _, placeId in pairs(serverRegionPlaceIds) do
+            if placeId == game.PlaceId then
+                includeServerRegion = true
+                break
+            end
+        end
+
+        local serverRegion
+        if includeServerRegion then
             local location = ReplicatedStorage:FindFirstChild("ServerLocation")
             if location ~= nil then
                 local value = location.Value
-                if value ~= nil and value ~= "" then
-                    serverRegion = tostring(value)
+                if value ~= nil then
+                    local text = tostring(value)
+                    if text ~= "" then
+                        serverRegion = text
+                    end
                 end
             end
         end
 
         local function buildInfoText()
-            return Library:ToRich(gameName, Library.Theme.Text)
-                .. infoSeparator
-                .. Library:ToRich(serverRegion, Library.Theme.Text)
-                .. infoSeparator
-                .. Library:ToRich(executorDisplay, Library.Theme.Text)
+            local segments = {
+                Library:ToRich(gameName, Library.Theme.Text)
+            }
+
+            if includeServerRegion and serverRegion and serverRegion ~= "" then
+                TableInsert(segments, Library:ToRich(serverRegion, Library.Theme.Text))
+            end
+
+            TableInsert(segments, Library:ToRich(executorDisplay, Library.Theme.Text))
+
+            return TableConcat(segments, infoSeparator)
         end
 
         local updateWatermarkPosition
-        local lastInfoText
 
         local function isRenderable()
             return Watermark.Enabled and Library.WindowIsOpen
@@ -5565,7 +5757,6 @@ local Library do
         local lastInfoText = ""
         local lastStatsText = ""
         local lastPingValue = -1
-        local lastFPSValue = -1
         local lastTimeValue = -1
         local lastPositionX = -1
         local lastPositionY = -1
@@ -6251,7 +6442,6 @@ local Library do
             Window.Items = Items
             Items["MouseBackground"].Instance.Visible = false
             Library.CurrentWindowItems = Items
-            Library:SetCustomCursorEnabled(Library.CustomCursorEnabled)
         end
 
         local Debounce = false
@@ -6310,15 +6500,6 @@ local Library do
             end
 
             Window.IsOpen = Bool
-            Library.WindowIsOpen = Bool
-
-            if Library.WatermarkObject then
-                Library.WatermarkObject:UpdateVisibility()
-            end
-
-            if Library.KeybindListObject then
-                Library.KeybindListObject:UpdateVisibility()
-            end
 
             Debounce = true
 
@@ -6327,27 +6508,48 @@ local Library do
             end
 
             Library.CurrentWindowItems = Items
-            Library:SetCustomCursorEnabled(Library.CustomCursorEnabled)
 
-            local fadeTargets = Library.FadeTargetCache[Items["Window"].Instance]
+            local windowInstance = Items["Window"].Instance
+            local fadeTargets = Library.FadeTargetCache[windowInstance]
 
             if not fadeTargets then
                 fadeTargets = { }
+                Library.FadeTargetCache[windowInstance] = fadeTargets
+            end
 
-                local descendants = Items["Window"].Instance:GetDescendants()
-                TableInsert(descendants, Items["Window"].Instance)
+            local existingTargets = {}
 
-                for _, value in descendants do
-                    local transparencyProperty = Tween:GetProperty(value)
+            local index = 1
+            while index <= #fadeTargets do
+                local entry = fadeTargets[index]
+                local object = entry.Object
 
-                    if not transparencyProperty then
-                        continue
-                    end
+                if not object or not object.Parent or not object:IsDescendantOf(windowInstance) then
+                    TableRemove(fadeTargets, index)
+                else
+                    existingTargets[object] = true
+                    index += 1
+                end
+            end
 
-                    TableInsert(fadeTargets, {Object = value, Property = transparencyProperty})
+            local function addFadeTarget(object)
+                if existingTargets[object] then
+                    return
                 end
 
-                Library.FadeTargetCache[Items["Window"].Instance] = fadeTargets
+                local transparencyProperty = Tween:GetProperty(object)
+                if not transparencyProperty then
+                    return
+                end
+
+                existingTargets[object] = true
+                TableInsert(fadeTargets, {Object = object, Property = transparencyProperty})
+            end
+
+            addFadeTarget(windowInstance)
+
+            for _, descendant in windowInstance:GetDescendants() do
+                addFadeTarget(descendant)
             end
 
             local NewTween
@@ -6365,11 +6567,21 @@ local Library do
                 end
             end
 
-            local function finishWindowTween()
-                Debounce = false
-                Items["Window"].Instance.Visible = Window.IsOpen
+            local function applyWindowState()
+                windowInstance.Visible = Window.IsOpen
                 Library.WindowIsOpen = Window.IsOpen
                 Library.CurrentWindowItems = Items
+
+                local mouseBackground = Items["MouseBackground"] and Items["MouseBackground"].Instance
+                local shouldShowCursor = Window.IsOpen and Library.CustomCursorEnabled
+
+                if mouseBackground then
+                    mouseBackground.Visible = shouldShowCursor
+                end
+
+                Library.CursorVisible = shouldShowCursor
+                UserInputService.MouseIconEnabled = not shouldShowCursor
+
                 Library:SetCustomCursorEnabled(Library.CustomCursorEnabled)
 
                 if Library.WatermarkObject then
@@ -6379,6 +6591,11 @@ local Library do
                 if Library.KeybindListObject then
                     Library.KeybindListObject:UpdateVisibility()
                 end
+            end
+
+            local function finishWindowTween()
+                Debounce = false
+                applyWindowState()
             end
 
             if NewTween and NewTween.Tween then
