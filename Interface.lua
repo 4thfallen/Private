@@ -4160,12 +4160,22 @@ local Library do
             end
 
             local function Finalize()
+                local windowItem = Items["ColorpickerWindow"]
+                local windowInstance = windowItem and windowItem.Instance
+
+                if not windowInstance then
+                    Library.OpenFrames[Colorpicker] = nil
+                    DisconnectRenderStepped()
+                    Debounce = false
+                    return
+                end
+
                 if Colorpicker.IsOpen then
-                    Items["ColorpickerWindow"].Instance.Visible = true
-                    Items["ColorpickerWindow"].Instance.Parent = Library.Holder.Instance
+                    windowInstance.Visible = true
+                    windowInstance.Parent = Library.Holder.Instance
                     Library.OpenFrames[Colorpicker] = Colorpicker
                 else
-                    Items["ColorpickerWindow"].Instance.Visible = false
+                    windowInstance.Visible = false
                     DisconnectRenderStepped()
 
                     if not Data.Debounce then
@@ -4173,8 +4183,8 @@ local Library do
                     end
 
                     task.delay(0.2, function()
-                        if not Colorpicker.IsOpen then
-                            Items["ColorpickerWindow"].Instance.Parent = Library.UnusedHolder.Instance
+                        if not Colorpicker.IsOpen and windowInstance then
+                            windowInstance.Parent = Library.UnusedHolder.Instance
                         end
                     end)
                 end
@@ -4187,18 +4197,36 @@ local Library do
                     return
                 end
 
+                local windowItem = Items["ColorpickerWindow"]
+                local buttonItem = Items["ColorpickerButton"]
+
+                local windowInstance = windowItem and windowItem.Instance
+                local buttonInstance = buttonItem and buttonItem.Instance
+
+                if not windowInstance or not buttonInstance then
+                    Colorpicker.IsOpen = false
+                    Debounce = false
+                    Library.OpenFrames[Colorpicker] = nil
+                    DisconnectRenderStepped()
+                    return
+                end
+
                 Colorpicker.IsOpen = Bool
 
                 Debounce = true
 
                 if Colorpicker.IsOpen then
-                    Items["ColorpickerWindow"].Instance.Visible = true
-                    Items["ColorpickerWindow"].Instance.Parent = Library.Holder.Instance
+                    windowInstance.Visible = true
+                    windowInstance.Parent = Library.Holder.Instance
 
                     DisconnectRenderStepped()
                     RenderSteppedName = "ColorpickerRender" .. HttpService:GenerateGUID(false)
                     Library:Connect(RunService.Heartbeat, function()
-                        Items["ColorpickerWindow"].Instance.Position = UDim2New(0, Items["ColorpickerButton"].Instance.AbsolutePosition.X, 0, Items["ColorpickerButton"].Instance.AbsolutePosition.Y + Items["ColorpickerButton"].Instance.AbsoluteSize.Y + 5)
+                        if windowItem and windowItem.Instance and buttonItem and buttonItem.Instance then
+                            windowItem.Instance.Position = UDim2New(0, buttonItem.Instance.AbsolutePosition.X, 0, buttonItem.Instance.AbsolutePosition.Y + buttonItem.Instance.AbsoluteSize.Y + 5)
+                        else
+                            DisconnectRenderStepped()
+                        end
                     end, RenderSteppedName)
 
                     if not Data.Debounce then
@@ -4219,13 +4247,20 @@ local Library do
                 else
                     DisconnectRenderStepped()
 
-                    if Library:IsMouseOverFrame(Items["ColorpickerWindow"]) then
-                        Items["MouseBackground"].Instance.Visible = false
+                    if windowItem and Library:IsMouseOverFrame(windowItem) then
+                        local mouseBackground = Items["MouseBackground"]
+                        if mouseBackground and mouseBackground.Instance then
+                            mouseBackground.Instance.Visible = false
+                        end
                     end
                 end
 
-                local Descendants = Items["ColorpickerWindow"].Instance:GetDescendants()
-                TableInsert(Descendants, Items["ColorpickerWindow"].Instance)
+                local Descendants = { }
+
+                if windowInstance then
+                    Descendants = windowInstance:GetDescendants()
+                    TableInsert(Descendants, windowInstance)
+                end
 
                 local NewTween
 
