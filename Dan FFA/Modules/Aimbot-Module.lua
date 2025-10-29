@@ -42,7 +42,7 @@ local BlackRGB = Color3FromRGB(0, 0, 0)
 -- // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local AimbotFunctions = {}
 local AimbotModule = {
-    Enabled = false;
+    Enabled = true;
     LockBind = "Q";
 
 
@@ -73,15 +73,15 @@ local AimbotModule = {
     FOVColor = RedRGB;
     FOVOutlineColor = BlackRGB;
 
-    FOVRadius = 0;
-    FOVNumSides = 0;
-    FOVThickness = 0;
-    FOVTransparency = 0;
+    FOVRadius = 250;
+    FOVNumSides = 60;
+    FOVThickness = 1;
+    FOVTransparency = 1;
 }
 
 AimbotFunctions.SmoothFactor = 1
 
-local AimbotState = {LockedTarget = nil, IsActive = false}
+local AimbotState = {LockedTarget = nil; IsActive = false}
 
 Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function() Camera = Workspace.CurrentCamera end)
 LocalPlayer.CharacterAdded:Connect(function() if AimbotState then AimbotState.LockedTarget = nil end end)
@@ -120,24 +120,24 @@ AimbotCircleOutline.Visible, AimbotCircleOutline.Filled, AimbotCircleOutline.Col
 AimbotCircleOutline.Radius, AimbotCircleOutline.Thickness, AimbotCircleOutline.Transparency = 0, 0, AimbotModule.FOVTransparency
 
 local FOVState = {
-    Visible = nil,
-    Filled = nil,
+    Visible = nil;
+    Filled = nil;
 
-    Color = nil,
-    Radius = 0,
+    Color = nil;
+    Radius = 0;
 
-    NumSides = 0,
-    Thickness = 0,
-    Transparency = 1,
+    NumSides = 0;
+    Thickness = 0;
+    Transparency = 1;
 
-    OutlineColor = nil,
-    OutlineThickness = 0,
-    OutlineRadius = 0,
+    OutlineColor = nil;
+    OutlineThickness = 0;
+    OutlineRadius = 0;
 
-    RawRadius = nil,
-    RawNumSides = nil,
-    RawThickness = nil,
-    RawTransparency = nil,
+    RawRadius = nil;
+    RawNumSides = nil;
+    RawThickness = nil;
+    RawTransparency = nil;
 }
 -- // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
