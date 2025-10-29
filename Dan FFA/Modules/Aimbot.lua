@@ -1,7 +1,7 @@
 if game.PlaceId ~= 105788818579323 and game.PlaceId ~= 104685095603299 and game.PlaceId ~= 128870589208224 then return end
 if not game.Loaded then game.Loaded:Wait() end
 
-local HelperFunctions = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/4thfallen/Private/refs/heads/main/Assets/HelperFunctions.lua"))()
+local HelperFunctions = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/4thfallen/Private/refs/heads/main/Dan%20FFA/Assets/HelperFunctions.lua"))()
 -- // ==================================================================================================================================================================================
 -- // ==================================================================================================================================================================================
 local DrawingNew = Drawing.new
