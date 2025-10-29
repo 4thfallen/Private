@@ -42,7 +42,7 @@ local BlackRGB = Color3FromRGB(0, 0, 0)
 -- // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local AimbotFunctions = {}
 local AimbotModule = {
-    Enabled = true;
+    Enabled = false;
     LockBind = "Q";
 
 
@@ -73,10 +73,10 @@ local AimbotModule = {
     FOVColor = RedRGB;
     FOVOutlineColor = BlackRGB;
 
-    FOVRadius = 250;
-    FOVNumSides = 60;
-    FOVThickness = 1;
-    FOVTransparency = 1;
+    FOVRadius = 0;
+    FOVNumSides = 0;
+    FOVThickness = 0;
+    FOVTransparency = 0;
 }
 
 AimbotFunctions.SmoothFactor = 1
