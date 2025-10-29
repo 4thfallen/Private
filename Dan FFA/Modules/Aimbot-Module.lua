@@ -387,12 +387,6 @@ function AimbotFunctions:Step(DeltaTime)
         return
     end
 
-    local RequireVisible = Configuration.VisibleCheck
-
-    local Radius = ToNumber(Configuration.FOVRadius)
-    local FOVActive = Configuration.FOVVisible and Radius > 0
-    local RadiusSquared = Radius * Radius
-
     local AimPart = nil
 
     if AimbotFunctions:IsValidTarget(LockedTarget, true) then
