@@ -115,7 +115,7 @@ function HelperFunctions:IsAlive(CharacterTarget)
 -- // ===========================================================================================================================
 function HelperFunctions:GetPlayers()
     if CachedPlayersDirty then
-        HelperFunctions:rebuildCachedPlayers()
+        HelperFunctions:RebuildCachedPlayers()
     end
 
     return CachedPlayers
@@ -126,7 +126,7 @@ Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     Camera = Workspace.CurrentCamera
 end)
 -- // ---------------------------------------------------------------------------------------------------------------------------
-function HelperFunctions:rebuildCachedPlayers()
+function HelperFunctions:RebuildCachedPlayers()
     CachedPlayers = Players:GetPlayers()
     CachedPlayersDirty = false
 end
