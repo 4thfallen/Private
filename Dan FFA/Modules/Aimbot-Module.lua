@@ -53,8 +53,8 @@ local AimbotModule = {
     DeadCheck = false;
     CrewCheck = false;
     DownedCheck = true;
-    FriendsCheck = false;
     VisibleCheck = true;
+    FriendsCheck = false;
 
 
     PredictionEnabled = false;
