@@ -25,6 +25,9 @@ VisibilityRaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 VisibilityRaycastParams.FilterDescendantsInstances = VisibilityIgnore
 
 local ControllerModule = require(ReplicatedStorage.Modules.Controller)
+
+local CachedPlayers = {}
+local CachedPlayersDirty = true
 -- // ===========================================================================================================================
 -- // ===========================================================================================================================
 
@@ -108,10 +111,32 @@ end
 -- // ===========================================================================================================================
 function HelperFunctions:IsAlive(CharacterTarget)
     return not HelperFunctions:IsDowned(CharacterTarget) and not HelperFunctions:IsDead(CharacterTarget)
+    end
+-- // ===========================================================================================================================
+function HelperFunctions:GetPlayers()
+    if CachedPlayersDirty then
+        HelperFunctions:rebuildCachedPlayers()
+    end
+
+    return CachedPlayers
 end
+-- // ===========================================================================================================================
 -- // ===========================================================================================================================
 Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     Camera = Workspace.CurrentCamera
+end)
+-- // ---------------------------------------------------------------------------------------------------------------------------
+function HelperFunctions:rebuildCachedPlayers()
+    CachedPlayers = Players:GetPlayers()
+    CachedPlayersDirty = false
+end
+-- // ---------------------------------------------------------------------------------------------------------------------------
+Players.PlayerAdded:Connect(function()
+    CachedPlayersDirty = true
+end)
+
+Players.PlayerRemoving:Connect(function()
+    CachedPlayersDirty = true
 end)
 -- // ===========================================================================================================================
 -- // ===========================================================================================================================
