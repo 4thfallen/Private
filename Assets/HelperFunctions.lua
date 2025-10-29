@@ -2,12 +2,11 @@ if game.PlaceId ~= 105788818579323 then return end
 if not game.Loaded then game.Loaded:Wait() end
 -- // ===========================================================================================================================
 -- // ===========================================================================================================================
-
 local HelperFunctions = {}
-local Game = game
-
 local VisibilityIgnore = {}
 local VisibilityPoints = {}
+
+local Game = game
 
 local Workspace = Game.Workspace
 local LocalPlayer = Game.Players.LocalPlayer
@@ -20,6 +19,7 @@ local TypeOf = typeof
 local Camera = Workspace.CurrentCamera
 
 local VisibilityRaycastParams = RaycastParams.new()
+
 VisibilityRaycastParams.IgnoreWater = true
 VisibilityRaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 VisibilityRaycastParams.FilterDescendantsInstances = VisibilityIgnore
@@ -86,11 +86,10 @@ function HelperFunctions:IsVisible(CharacterTarget)
     else
         IgnoreArray[2] = nil
     end
+
     IgnoreArray[3] = nil
 
     local FocusPart = TargetCharacter:FindFirstChild("HumanoidRootPart")
-        or TargetCharacter.PrimaryPart
-        or TargetCharacter:FindFirstChild("Head")
 
     if not FocusPart then
         local PivotCFrame = TargetCharacter:GetPivot()
